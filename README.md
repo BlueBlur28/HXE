@@ -1,3 +1,1 @@
-XboxEmu
-
-A Xbox emulator made in C!
+XboxEmu is a Xbox Emulator made in C!
