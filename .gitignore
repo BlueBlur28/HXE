@@ -1,0 +1,26 @@
+# Visual Studio temp/build stuff
+.vs/
+x64/
+Debug/
+Release/
+ipch/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.aps
+*.VC.db
+*.VC.opendb
+
+# Build outputs
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.lib
+*.dll
+*.exp
+*.idb
+
+# XBE files (legal safety — don't commit)
+*.xbe

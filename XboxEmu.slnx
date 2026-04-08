@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="XboxEmu/XboxEmu.vcxproj" Id="6a945bab-9804-4992-b904-cad0a33066d0" />
+</Solution>
