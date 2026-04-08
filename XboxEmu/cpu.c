@@ -3,7 +3,7 @@
 
 
 
-void cpu_init(int type)
+void entry_decode(int type)
 {
     uint32_t encoded = *(uint32_t*)(0x00010000 + 0x0128);
     uint32_t key = (type == 0) ? 0x94859D4B : 0xA8FC57AB;

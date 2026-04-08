@@ -3,8 +3,8 @@
 
 
 
-//CPU Init decrypts the XBE Entry Point
-void cpu_init(int type); // 0 is DEBUG, 1 is RETAIL
+//decrypts the XBE Entry Point
+void entry_decode(int type); // 0 is DEBUG, 1 is RETAIL
 
 
 

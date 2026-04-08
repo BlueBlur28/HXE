@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-
+uint32_t ThunkTableAddr;
 
 void LoadSectionHeaders(void) {
     uint32_t numSections = *(uint32_t*)(0x00010000 + 0x011C);
@@ -23,5 +23,28 @@ void LoadSectionHeaders(void) {
         // copy the bytes from where they are in the loaded XBE
         // to where the section wants to live
         memcpy((void*)virtAddr, (void*)rawAddr , rawSize);
+    }
+}
+
+
+void thunktable_decode(int type)
+{
+    uint32_t encoded = *(uint32_t*)(0x00010000 + 0x0158);
+    uint32_t key = (type == 0) ? 0xEFB1F152 : 0x5B6D40B6;
+    uint32_t entry = encoded ^ key;
+
+    ThunkTableAddr = encoded ^ key;
+
+    printf("Kernel Thunk Table At: 0x%08X\n", entry);
+}
+
+
+void LoadThunkTable(void)
+{
+    uint32_t* thunk = (uint32_t*)ThunkTableAddr;
+    while (*thunk != 0) {
+        uint32_t importNum = *thunk & 0x1FF;
+        printf("Imports: #%u\n", importNum);
+        thunk++;
     }
 }
