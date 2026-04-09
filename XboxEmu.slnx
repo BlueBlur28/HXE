@@ -3,5 +3,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="XboxEmu/XboxEmu.vcxproj" Id="6a945bab-9804-4992-b904-cad0a33066d0" />
+  <Project Path="XboxEmu/XboxEmu.vcxproj" Id="6a945bab-9804-4992-b904-cad0a33066d0">
+    <BuildDependency Project="Xemu-dll/Xemu-dll.vcxproj" />
+  </Project>
+  <Project Path="Xemu-dll/Xemu-dll.vcxproj" Id="3adb73d4-e0c0-46c3-a84d-a82933a567cd" />
 </Solution>

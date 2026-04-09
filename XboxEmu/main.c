@@ -1,26 +1,26 @@
-#include "memory.h"
-#include "xbe.h"
-#include "cpu.h"
+#include <windows.h>
 
+extern unsigned char xbox_memory_blob[];
 
-int main(void)
+typedef void (*EmulateFn)(void);
+
+DWORD CALLBACK rawMain(void)
 {
-	InitVirtualMem(); //Init Memory
-	
-	LoadXBE("C:/Projects/XboxEmu/XboxEmu/default.xbe"); //Load a xbe file
-	
-	ReadByte(0x00010000); //Just reading some bytes for fun
-	ReadByte(0x00010001);
-	ReadByte(0x00010002);
-	ReadByte(0x00010003);
-	ReadByte(0x00010004);
-	LoadSectionHeaders();
-	
-	entry_decode(1); //Decode entry point
-	
-	thunktable_decode(1); //Decode the kernel thunktable
+    // Keep the placeholder alive so the linker doesn't strip it
+    (void)xbox_memory_blob;
 
-	LoadThunkTable();
-	
-	return 0;
+    HMODULE dll = LoadLibraryA("Xemu-dll.dll");
+    if (!dll) {
+        OutputDebugStringA("HXE: Failed to load Xemu-dll.dll\n");
+        return 1;
+    }
+
+    EmulateFn Emulate = (EmulateFn)GetProcAddress(dll, "Emulate");
+    if (!Emulate) {
+        OutputDebugStringA("HXE: Failed to find Emulate in DLL\n");
+        return 1;
+    }
+
+    Emulate();
+    return 0;
 }

@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include "kernel.h"
 
 uint32_t ThunkTableAddr;
 
@@ -44,7 +46,14 @@ void LoadThunkTable(void)
     uint32_t* thunk = (uint32_t*)ThunkTableAddr;
     while (*thunk != 0) {
         uint32_t importNum = *thunk & 0x1FF;
-        printf("Imports: #%u\n", importNum);
+
+        if (kernel_table[importNum] != NULL) {
+            *thunk = (uint32_t)kernel_table[importNum];
+            printf("Patched #%u\n", importNum);
+        } else {
+            printf("UNSTUBBED #%u (left as placeholder)\n", importNum);
+        }
+
         thunk++;
     }
 }
