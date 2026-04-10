@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Kernel">
+      <UniqueIdentifier>{c99a4e3f-6585-44e5-a88c-19dd0667c7f8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kernel.h">
@@ -43,6 +46,15 @@
     </ClCompile>
     <ClCompile Include="xbe.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel_nt.c">
+      <Filter>Source Files\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel_Xc.c">
+      <Filter>Source Files\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel_misc.c">
+      <Filter>Source Files\Kernel</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

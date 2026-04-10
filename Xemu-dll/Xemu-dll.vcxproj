@@ -144,6 +144,9 @@
     <ClCompile Include="cpu.c" />
     <ClCompile Include="emulate.c" />
     <ClCompile Include="kernel.c" />
+    <ClCompile Include="kernel_misc.c" />
+    <ClCompile Include="kernel_nt.c" />
+    <ClCompile Include="kernel_Xc.c" />
     <ClCompile Include="memory.c" />
     <ClCompile Include="xbe.c" />
   </ItemGroup>

@@ -13,7 +13,7 @@ __declspec(dllexport) void Emulate(void)
     InitVirtualMem();
     // Add LoadXBE / LoadSectionHeaders / etc. calls here as you wire them up.
 
-    LoadXBE("default.xbe");
+    LoadXBE("hello.xbe");
     ReadByte(0x00010000);
     ReadByte(0x00010001);
     ReadByte(0x00010002);
@@ -26,9 +26,13 @@ __declspec(dllexport) void Emulate(void)
 
     LoadThunkTable();         // walk thunks and patch using kernel_table
 
-    run_cpu(0x000198E0);      // hardcoded entry from earlier output
+    AddVectoredExceptionHandler(1, ExceptionHandler); //Tell Windows to use our Exception Handler
 
-
+    
+    
+    uint32_t entry = entry_decode(1);
+    run_cpu(entry);
+    
 
     // Don't return — the .exe's loader code has been overwritten by XBE bytes
     ExitProcess(0);
