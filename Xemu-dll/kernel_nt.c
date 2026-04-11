@@ -1,9 +1,20 @@
+#include <windows.h>
 #include <stdio.h>
 #include <stdint.h>
 #include "kernel.h"
 
 // 0x00B8 - #184 NtAllocateVirtualMemory
-uint32_t __stdcall stub_NtAllocateVirtualMemory(void** BaseAddress, uint32_t ZeroBits, uint32_t* AllocationSize, uint32_t AllocationType, uint32_t Protect) { return 0; }
+uint32_t __stdcall stub_NtAllocateVirtualMemory(void** BaseAddress, uint32_t ZeroBits, uint32_t* AllocationSize, uint32_t AllocationType, uint32_t Protect)
+{
+    uint32_t size = *AllocationSize;
+    void* ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    printf("NtAllocateVirtualMemory(%u) = %p\n", size, ptr);
+    if (ptr) {
+        *BaseAddress = ptr;
+        return 0;
+    }
+    return 0xC0000017;  // STATUS_NO_MEMORY
+}
 
 // 0x00BA - #186 NtClearEvent
 uint32_t __stdcall stub_NtClearEvent(uint32_t EventHandle) { return 0; }
@@ -12,16 +23,38 @@ uint32_t __stdcall stub_NtClearEvent(uint32_t EventHandle) { return 0; }
 uint32_t __stdcall stub_NtClose(uint32_t Handle) { return 0; }
 
 // 0x00BD - #189 NtCreateEvent
-uint32_t __stdcall stub_NtCreateEvent(void* EventHandle, void* ObjectAttributes, uint32_t EventType, uint32_t InitialState) { return 0; }
+uint32_t __stdcall stub_NtCreateEvent(void* EventHandle, void* ObjectAttributes, uint32_t EventType, uint32_t InitialState)
+{
+    static uint32_t fake_handle = 0x2000;
+    printf("NtCreateEvent -> handle 0x%X\n", fake_handle);
+    *(uint32_t*)EventHandle = fake_handle++;
+    return 0;
+}
 
 // 0x00BE - #190 NtCreateFile
-uint32_t __stdcall stub_NtCreateFile(void* FileHandle, uint32_t DesiredAccess, void* ObjectAttributes, void* IoStatusBlock, void* AllocationSize, uint32_t FileAttributes, uint32_t ShareAccess, uint32_t CreateDisposition, uint32_t CreateOptions) { return 0; }
+uint32_t __stdcall stub_NtCreateFile(void* FileHandle, uint32_t DesiredAccess, void* ObjectAttributes, void* IoStatusBlock, void* AllocationSize, uint32_t FileAttributes, uint32_t ShareAccess, uint32_t CreateDisposition, uint32_t CreateOptions)
+{
+    printf("NtCreateFile\n");
+    return 0;
+}
 
 // 0x00C0 - #192 NtCreateMutant
-uint32_t __stdcall stub_NtCreateMutant(void* MutantHandle, void* ObjectAttributes, uint32_t InitialOwner) { return 0; }
+uint32_t __stdcall stub_NtCreateMutant(void* MutantHandle, void* ObjectAttributes, uint32_t InitialOwner)
+{
+    static uint32_t fake_handle = 0x1000;
+    printf("NtCreateMutant -> handle 0x%X\n", fake_handle);
+    *(uint32_t*)MutantHandle = fake_handle++;
+    return 0;
+}
 
 // 0x00C1 - #193 NtCreateSemaphore
-uint32_t __stdcall stub_NtCreateSemaphore(void* SemaphoreHandle, void* ObjectAttributes, uint32_t InitialCount, uint32_t MaximumCount) { return 0; }
+uint32_t __stdcall stub_NtCreateSemaphore(void* SemaphoreHandle, void* ObjectAttributes, uint32_t InitialCount, uint32_t MaximumCount)
+{
+    static uint32_t fake_handle = 0x3000;
+    printf("NtCreateSemaphore -> handle 0x%X\n", fake_handle);
+    *(uint32_t*)SemaphoreHandle = fake_handle++;
+    return 0;
+}
 
 // 0x00C7 - #199 NtFreeVirtualMemory
 uint32_t __stdcall stub_NtFreeVirtualMemory(void** BaseAddress, uint32_t* FreeSize, uint32_t FreeType) { return 0; }

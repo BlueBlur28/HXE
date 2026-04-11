@@ -1,0 +1,35 @@
+ // === World's smallest XBE: handwritten x86 that calls DbgPrint ===
+
+// Write the string into Xbox memory at 0x00030000
+ char* str = (char*)0x00030000;
+ strcpy(str, "Hello from HXE!\n");
+
+ // Get the address of our DbgPrint stub
+ uint32_t dbgprint_addr = (uint32_t)stub_DbgPrint;
+
+ // Write x86 machine code at 0x00031000
+ uint8_t* code = (uint8_t*)0x00031000;
+
+ // push 0x00030000         ; push string address onto stack
+ code[0] = 0x68;
+ *(uint32_t*)(code + 1) = 0x00030000;
+
+ // mov eax, dbgprint_addr  ; load DbgPrint address into eax
+ code[5] = 0xB8;
+ *(uint32_t*)(code + 6) = dbgprint_addr;
+
+ // call eax                ; call DbgPrint
+ code[10] = 0xFF;
+ code[11] = 0xD0;
+
+ // add esp, 4              ; caller cleans stack (__cdecl)
+ code[12] = 0x83;
+ code[13] = 0xC4;
+ code[14] = 0x04;
+
+ // jmp $                   ; infinite loop (we're done)
+ code[15] = 0xEB;
+ code[16] = 0xFE;
+
+ printf("Running handwritten Xbox code...\n");
+ run_cpu(0x00031000);

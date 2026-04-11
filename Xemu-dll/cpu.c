@@ -26,6 +26,16 @@ void run_cpu(uint32_t entry)
 
 LONG CALLBACK ExceptionHandler(EXCEPTION_POINTERS* ep)
 {
+    // Catch access violations — game is poking unmapped hardware
+    if (ep->ExceptionRecord->ExceptionCode == 0xC0000005)  // ACCESS_VIOLATION
+    {
+        uint32_t rw = ep->ExceptionRecord->ExceptionInformation[0];   // 0=read, 1=write
+        uint32_t addr = ep->ExceptionRecord->ExceptionInformation[1]; // target address
+        printf("Hardware poke: %s 0x%08X (code at 0x%08X)\n",
+            rw ? "WRITE" : "READ", addr, ep->ContextRecord->Eip);
+        return EXCEPTION_CONTINUE_SEARCH;  // let it crash for now (we'll handle later)
+    }
+
     if (ep->ExceptionRecord->ExceptionCode == 0xC0000096)  // EXCEPTION_PRIV_INSTRUCTION
     {
         uint8_t* inst = (uint8_t*)ep->ContextRecord->Eip;  // what instruction crashed
