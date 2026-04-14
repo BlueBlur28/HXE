@@ -30,6 +30,9 @@
     <ClInclude Include="xbe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kernel.c">
@@ -55,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="kernel_misc.c">
       <Filter>Source Files\Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="gpu.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

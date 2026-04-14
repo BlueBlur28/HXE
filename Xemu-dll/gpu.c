@@ -1,0 +1,271 @@
+#include <windows.h>
+#include <gl/GL.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "gpu.h"
+
+// === NV097 command IDs ===
+#define NV097_SET_VERTEX_DATA_ARRAY_OFFSET  0x1720
+#define NV097_SET_VERTEX_DATA_ARRAY_FORMAT  0x1760
+#define NV097_SET_BEGIN_END                 0x17FC
+#define NV097_DRAW_ARRAYS                   0x1810
+
+// Format masks
+#define FORMAT_TYPE_MASK    0x0000000F
+#define FORMAT_SIZE_MASK    0x000000F0
+#define FORMAT_STRIDE_MASK  0xFFFFFF00
+#define FORMAT_TYPE_FLOAT   2
+
+// Draw arrays masks
+#define DRAW_COUNT_MASK     0xFF000000
+#define DRAW_START_MASK     0x00FFFFFF
+
+// === Window state ===
+static HWND  g_hWnd = NULL;
+static HDC   g_hDC = NULL;
+
+// === GPU state tracking ===
+#define MAX_ATTRIBS 16
+
+static struct {
+    uint32_t format;    // type, size, stride packed
+    uint32_t offset;    // physical address of vertex data
+} g_attribs[MAX_ATTRIBS];
+
+static int g_primitive_type = 0;
+
+// === Window setup ===
+
+void gpu_set_window(HWND hWnd, HDC hDC)
+{
+    g_hWnd = hWnd;
+    g_hDC = hDC;
+    printf("GPU window received: %p\n", hWnd);
+}
+
+// === NV097 command handler ===
+
+static void gpu_draw_arrays(uint32_t start, uint32_t count)
+{
+    // Get position attribute (index 0) and color attribute (index 3)
+    // Offsets are physical addresses — add 0x80000000 to get KSEG0 virtual address
+    uint32_t pos_offset = g_attribs[0].offset ? g_attribs[0].offset + 0x80000000 : 0;
+    uint32_t col_offset = g_attribs[3].offset ? g_attribs[3].offset + 0x80000000 : 0;
+    uint32_t pos_stride = (g_attribs[0].format & FORMAT_STRIDE_MASK) >> 8;
+    uint32_t col_stride = (g_attribs[3].format & FORMAT_STRIDE_MASK) >> 8;
+    uint32_t pos_size   = (g_attribs[0].format & FORMAT_SIZE_MASK) >> 4;
+    uint32_t col_size   = (g_attribs[3].format & FORMAT_SIZE_MASK) >> 4;
+
+    if (!pos_offset) return;
+
+    // Map Xbox primitive type to OpenGL
+    GLenum gl_mode;
+    switch (g_primitive_type) {
+        case 0x01: gl_mode = GL_POINTS; break;
+        case 0x02: gl_mode = GL_LINES; break;
+        case 0x04: gl_mode = GL_LINE_STRIP; break;
+        case 0x05: gl_mode = GL_TRIANGLES; break;
+        case 0x06: gl_mode = GL_TRIANGLE_STRIP; break;
+        case 0x07: gl_mode = GL_TRIANGLE_FAN; break;
+        case 0x08: gl_mode = GL_QUADS; break;
+        default:   gl_mode = GL_TRIANGLES; break;
+    }
+
+    glBegin(gl_mode);
+    for (uint32_t i = start; i < start + count; i++) {
+        // Read color if available
+        if (col_offset) {
+            float* c = (float*)(col_offset + i * col_stride);
+            glColor3f(c[0], c[1], c[2]);
+        }
+
+        // Read position
+        float* v = (float*)(pos_offset + i * pos_stride);
+        if (pos_size >= 3)
+            glVertex3f(v[0], v[1], v[2]);
+        else
+            glVertex2f(v[0], v[1]);
+    }
+    glEnd();
+}
+
+// Called from patched pb_push1 — processes NV097 GPU commands
+void gpu_process_command(uint32_t command, uint32_t param)
+{
+    // Strip the method encoding bits — get the register offset
+    uint32_t method = command & 0x1FFF;
+
+    // Vertex data array offset (16 attributes: 0x1720 + index*4)
+    if (method >= NV097_SET_VERTEX_DATA_ARRAY_OFFSET &&
+        method < NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 16 * 4) {
+        int index = (method - NV097_SET_VERTEX_DATA_ARRAY_OFFSET) / 4;
+        g_attribs[index].offset = param;  // physical address
+        return;
+    }
+
+    // Vertex data array format (16 attributes: 0x1760 + index*4)
+    if (method >= NV097_SET_VERTEX_DATA_ARRAY_FORMAT &&
+        method < NV097_SET_VERTEX_DATA_ARRAY_FORMAT + 16 * 4) {
+        int index = (method - NV097_SET_VERTEX_DATA_ARRAY_FORMAT) / 4;
+        g_attribs[index].format = param;
+        return;
+    }
+
+    // Begin/End primitive
+    if (method == NV097_SET_BEGIN_END) {
+        g_primitive_type = param;
+        return;
+    }
+
+    // Draw arrays
+    if (method == NV097_DRAW_ARRAYS) {
+        uint32_t count = ((param & DRAW_COUNT_MASK) >> 24) + 1;
+        uint32_t start = param & DRAW_START_MASK;
+        gpu_draw_arrays(start, count);
+        return;
+    }
+}
+
+// === HLE replacements for pbkit functions ===
+
+int __cdecl hle_pb_init(void)
+{
+    printf("HLE: pb_init()\n");
+    memset(g_attribs, 0, sizeof(g_attribs));
+    return 0;
+}
+
+void __cdecl hle_pb_show_front_screen(void)
+{
+    printf("HLE: pb_show_front_screen()\n");
+}
+
+int __cdecl hle_pb_back_buffer_width(void) { return 640; }
+int __cdecl hle_pb_back_buffer_height(void) { return 480; }
+
+void __cdecl hle_pb_wait_for_vbl(void)
+{
+    static int frame = 0;
+    if (frame % 60 == 0) printf("Frame %d\n", frame);
+    frame++;
+
+    MSG msg;
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    Sleep(16);
+}
+
+void __cdecl hle_pb_reset(void)
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void __cdecl hle_pb_target_back_buffer(void) { }
+void __cdecl hle_pb_erase_depth_stencil_buffer(void) { }
+void __cdecl hle_pb_fill(void) { }
+
+uint32_t* __cdecl hle_pb_begin(void)
+{
+    static uint32_t dummy_pushbuffer[4096];
+    return dummy_pushbuffer;
+}
+
+void __cdecl hle_pb_end(uint32_t* p) { }
+
+// Replacement for pb_push1 — intercepts NV097 commands
+uint32_t* __cdecl hle_pb_push1(uint32_t* p, uint32_t command, uint32_t param)
+{
+    gpu_process_command(command, param);
+    // Still write to pushbuffer so calling code doesn't break
+    p[0] = command;
+    p[1] = param;
+    return p + 2;
+}
+
+int __cdecl hle_pb_busy(void) { return 0; }
+
+int __cdecl hle_pb_finished(void)
+{
+    if (g_hDC) SwapBuffers(g_hDC);
+    return 0;
+}
+
+void __cdecl hle_pb_print(void) { }
+void __cdecl hle_pb_draw_text_screen(void) { }
+
+// === Patcher ===
+
+static void patch_function(uint32_t target, void* replacement)
+{
+    uint8_t* code = (uint8_t*)target;
+    int32_t offset = (int32_t)((uint32_t)replacement - target - 5);
+    code[0] = 0xE9;
+    *(int32_t*)(code + 1) = offset;
+    printf("Patched 0x%08X -> %p\n", target, replacement);
+}
+
+// Pattern matching: scan loaded XBE for a byte pattern, return address if found
+static uint32_t find_pattern(uint8_t* pattern, int len, uint32_t start, uint32_t end)
+{
+    for (uint32_t addr = start; addr < end - len; addr++) {
+        if (memcmp((void*)addr, pattern, len) == 0) {
+            return addr;
+        }
+    }
+    return 0;
+}
+
+// pbkit function fingerprints — 32 bytes (extracted from nxdk-compiled XBE)
+#define PAT_LEN 32
+
+static struct {
+    const char* name;
+    uint8_t pattern[PAT_LEN];
+    void* replacement;
+} pbkit_patches[] = {
+    {"pb_init",       {0x55,0x89,0xE5,0x56,0x83,0xE4,0xF8,0x81,0xEC,0x10,0x05,0x00,0x00,0xC7,0x84,0x24,0xD4,0x03,0x00,0x00,0x80,0x00,0x00,0x00,0xC7,0x84,0x24,0xD0,0x03,0x00,0x00,0x80}, hle_pb_init},
+    {"pb_show_front", {0x55,0x89,0xE5,0xA1,0x9C,0x6A,0x03,0x00,0x8B,0x0C,0x85,0x54,0x6A,0x03,0x00,0x81,0xE1,0xFF,0xFF,0xFF,0x03,0xB8,0x00,0x08,0x60,0xFD,0x89,0x08,0xC7,0x05,0xA0,0x6A}, hle_pb_show_front_screen},
+    {"pb_width",      {0x55,0x89,0xE5,0xA1,0x48,0x6A,0x03,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00,0x55,0x89,0xE5,0xA1,0x4C,0x6A,0x03,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00}, hle_pb_back_buffer_width},
+    {"pb_height",     {0x55,0x89,0xE5,0xA1,0x4C,0x6A,0x03,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00,0x55,0x89,0xE5,0xA1,0x50,0x6A,0x03,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00}, hle_pb_back_buffer_height},
+    {"pb_wait_vbl",   {0x55,0x89,0xE5,0x83,0xEC,0x0C,0xA1,0x8C,0x6A,0x03,0x00,0x31,0xC9,0x89,0x04,0x24,0xC7,0x44,0x24,0x04,0x00,0x00,0x00,0x00,0xC7,0x44,0x24,0x08,0x00,0x00,0x00,0x00}, hle_pb_wait_for_vbl},
+    {"pb_reset",      {0x55,0x89,0xE5,0xE8,0x08,0x00,0x00,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00,0x55,0x89,0xE5,0x83,0xEC,0x0C,0x8B,0x0D,0x98,0x6A,0x03,0x00,0x81,0xE1,0xFF,0xFF}, hle_pb_reset},
+    {"pb_begin",      {0x55,0x89,0xE5,0xA1,0x44,0x6A,0x03,0x00,0x5D,0xC3,0x66,0x0F,0x1F,0x44,0x00,0x00,0x55,0x89,0xE5,0x83,0xEC,0x18,0x8B,0x45,0x08,0x8B,0x45,0x08,0xA3,0x44,0x6A,0x03}, hle_pb_begin},
+    {"pb_end",        {0x55,0x89,0xE5,0x83,0xEC,0x18,0x8B,0x45,0x08,0x8B,0x45,0x08,0xA3,0x44,0x6A,0x03,0x00,0xE8,0x8A,0x00,0x00,0x00,0x83,0x3D,0x94,0x6A,0x03,0x00,0x00,0x0F,0x84,0x6B}, hle_pb_end},
+    {"pb_target_bb",  {0x55,0x89,0xE5,0x50,0xA1,0x60,0x6A,0x03,0x00,0x8B,0x04,0x85,0x54,0x6A,0x03,0x00,0x25,0xFF,0xFF,0xFF,0x03,0x89,0x04,0x24,0xE8,0x13,0x00,0x00,0x00,0x83,0xC4,0x04}, hle_pb_target_back_buffer},
+    {"pb_erase_ds",   {0x55,0x89,0xE5,0x83,0xEC,0x20,0x8B,0x45,0x14,0x8B,0x45,0x10,0x8B,0x45,0x0C,0x8B,0x45,0x08,0x8B,0x45,0x08,0x89,0x45,0xF8,0x8B,0x45,0x0C,0x89,0x45,0xF4,0x8B,0x45}, hle_pb_erase_depth_stencil_buffer},
+    {"pb_fill",       {0x55,0x89,0xE5,0x83,0xEC,0x28,0x8B,0x45,0x18,0x8B,0x45,0x14,0x8B,0x45,0x10,0x8B,0x45,0x0C,0x8B,0x45,0x08,0x8B,0x45,0x08,0x89,0x45,0xF8,0x8B,0x45,0x0C,0x89,0x45}, hle_pb_fill},
+    {"pb_push1",      {0x55,0x89,0xE5,0x56,0x83,0xEC,0x10,0x8B,0x45,0x10,0x8B,0x45,0x0C,0x8B,0x45,0x08,0x8B,0x45,0x10,0x8B,0x4D,0x0C,0x8B,0x55,0x08,0x31,0xF6,0xC7,0x04,0x24,0x00,0x00}, hle_pb_push1},
+    {"pb_busy",       {0x55,0x89,0xE5,0x83,0xEC,0x0C,0xA1,0x40,0x6A,0x03,0x00,0x8B,0x40,0x44,0x89,0x45,0xF4,0xA1,0x44,0x6A,0x03,0x00,0x89,0x45,0xF8,0x8B,0x45,0xF4,0x33,0x45,0xF8,0x25}, hle_pb_busy},
+    {"pb_finished",   {0x55,0x89,0xE5,0x83,0xEC,0x14,0xA1,0xD0,0x6A,0x03,0x00,0x83,0x3C,0x85,0xC4,0x6A,0x03,0x00,0x00,0x0F,0x84,0x0C,0x00,0x00,0x00,0xC7,0x45,0xFC,0x01,0x00,0x00,0x00}, hle_pb_finished},
+    {"pb_print",      {0x55,0x89,0xE5,0x81,0xEC,0x18,0x02,0x00,0x00,0x8B,0x45,0x08,0x8D,0x45,0x0C,0x89,0x85,0xF8,0xFD,0xFF,0xFF,0x8B,0x85,0xF8,0xFD,0xFF,0xFF,0x8B,0x4D,0x08,0x8D,0x95}, hle_pb_print},
+    {"pb_draw_text",  {0x55,0x89,0xE5,0x83,0xEC,0x38,0xC7,0x45,0xFC,0x00,0x00,0x00,0x00,0x83,0x7D,0xFC,0x10,0x0F,0x8D,0x79,0x00,0x00,0x00,0xC7,0x45,0xF8,0x00,0x00,0x00,0x00,0x83,0x7D}, hle_pb_draw_text_screen},
+};
+
+#define NUM_PATCHES (sizeof(pbkit_patches) / sizeof(pbkit_patches[0]))
+
+void gpu_patch_pbkit(void)
+{
+    // Hardcoded addresses from triangle.xbe map file
+    // Pattern matching with wildcards (OOVPA-style) is TODO
+    patch_function(0x00018D20, hle_pb_init);
+    patch_function(0x00017CF0, hle_pb_show_front_screen);
+    patch_function(0x00017220, hle_pb_back_buffer_width);
+    patch_function(0x00017230, hle_pb_back_buffer_height);
+    patch_function(0x00017A20, hle_pb_wait_for_vbl);
+    patch_function(0x00017B30, hle_pb_reset);
+    patch_function(0x00017BE0, hle_pb_begin);
+    patch_function(0x00017BF0, hle_pb_end);
+    patch_function(0x000172C0, hle_pb_target_back_buffer);
+    patch_function(0x00018000, hle_pb_erase_depth_stencil_buffer);
+    patch_function(0x0001CD60, hle_pb_fill);
+    patch_function(0x0001D2F0, hle_pb_push1);
+    patch_function(0x000171B0, hle_pb_busy);
+    patch_function(0x00018100, hle_pb_finished);
+    patch_function(0x0001C860, hle_pb_print);
+    patch_function(0x0001CA20, hle_pb_draw_text_screen);
+}

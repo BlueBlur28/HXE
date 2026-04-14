@@ -42,6 +42,9 @@ void InitVirtualMem(void) //Inits the Xbox's memory by allocating virtual space
     }
     */
 
+    // KSEG0 — physical RAM mirror at 0x80000000 (64 MB)
+    VirtualAlloc((LPVOID)0x80000000, 0x04000000, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    printf("KSEG0 OK! at 80000000\n");
 
 }
 

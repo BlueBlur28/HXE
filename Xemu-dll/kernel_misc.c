@@ -152,10 +152,15 @@ uint32_t __stdcall stub_KeSetBasePriorityThread(void* Thread, uint32_t Priority)
 // 0x00A4 - #164 LaunchDataPage (DATA EXPORT - global variable)
 uint8_t stub_LaunchDataPage[0x1000] = { 0 };
 
+// Bump allocator for contiguous memory (KSEG0 at 0x80000000)
+static uint32_t contig_ptr = 0x80100000;
+
 // 0x00A5 - #165 MmAllocateContiguousMemory
 void* __stdcall stub_MmAllocateContiguousMemory(uint32_t NumberOfBytes)
 {
-    void* ptr = VirtualAlloc(NULL, NumberOfBytes, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    uint32_t size = (NumberOfBytes + 0xFFF) & ~0xFFF;
+    void* ptr = (void*)contig_ptr;
+    contig_ptr += size;
     printf("MmAllocateContiguousMemory(%u) = %p\n", NumberOfBytes, ptr);
     return ptr;
 }
@@ -163,7 +168,9 @@ void* __stdcall stub_MmAllocateContiguousMemory(uint32_t NumberOfBytes)
 // 0x00A6 - #166 MmAllocateContiguousMemoryEx
 void* __stdcall stub_MmAllocateContiguousMemoryEx(uint32_t NumberOfBytes, uint32_t LowestAddr, uint32_t HighestAddr, uint32_t Alignment, uint32_t ProtectionType)
 {
-    void* ptr = VirtualAlloc(NULL, NumberOfBytes, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    uint32_t size = (NumberOfBytes + 0xFFF) & ~0xFFF;
+    void* ptr = (void*)contig_ptr;
+    contig_ptr += size;
     printf("MmAllocateContiguousMemoryEx(%u) = %p\n", NumberOfBytes, ptr);
     return ptr;
 }
