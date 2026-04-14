@@ -7,11 +7,18 @@
 - Runs the game code natively on your x64/x86 pc! (Until it crashes:P)
 - Patching Thunk Table to load kernel functions
 - Can run a simple hello world program!
+- Can run a nxdk triangle demo!
 
 #### What doesn't work
 - Running actual games
 - All kernel functions
-- Graphics
+
+
+
+<img width="613.5" height="462.5" alt="pic" src="https://github.com/user-attachments/assets/58fe7f71-ec17-4e17-a37e-d9506ce7f0c4" />
+
+HXE Running the nxdk triangle demo!
+
 
 ## Credits
 - https://github.com/cxbx-reloaded/cxbx-reloaded Their source code is really good reference for how to pull of all this HLE-ing.
