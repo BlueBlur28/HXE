@@ -1,4 +1,4 @@
-# XboxEmu
+# HXE
 ### A Work in progress Xbox (OG) emulator written in C
 
 #### What Works
