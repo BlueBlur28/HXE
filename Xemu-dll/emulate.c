@@ -17,7 +17,7 @@ __declspec(dllexport) void Emulate(HWND hWnd, HDC hDC)
 
     gpu_set_window(hWnd, hDC);
 
-    LoadXBE("triangle.xbe");
+    LoadXBE("hello.xbe"); //LoadXBE("C:/Projects/XboxRoms/Shadow/default.xbe");
     ReadByte(0x00010000);
     ReadByte(0x00010001);
     ReadByte(0x00010002);
@@ -28,7 +28,9 @@ __declspec(dllexport) void Emulate(HWND hWnd, HDC hDC)
     thunktable_decode(1);
     LoadThunkTable();
 
+    gpu_dump_pbkit_patterns();
     gpu_patch_pbkit();
+   
 
     uint32_t entry = entry_decode(1);
     run_cpu(entry);

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include "kernel.h"
 
 // === Av (Audio/Video) ===
@@ -270,3 +271,157 @@ uint32_t __stdcall stub_RtlTryEnterCriticalSection(void* CriticalSection) { retu
 
 // 0x0146 - #326 XeImageFileName (DATA EXPORT)
 uint8_t stub_XeImageFileName[64] = { 0 };
+
+// === Additional stubs for top unstubbed imports ===
+
+void* __stdcall stub_ExAllocatePool(uint32_t NumberOfBytes) { return malloc(NumberOfBytes); }
+void __stdcall stub_ExFreePool(void* P) { free(P); }
+
+uint32_t __stdcall stub_IoCreateFile(void* FileHandle, uint32_t a, void* b, void* c, void* d, uint32_t e, uint32_t f, uint32_t g, uint32_t h, uint32_t i)
+{
+    if (FileHandle) *(uint32_t*)FileHandle = 0;
+    return 0xC0000034;
+}
+
+uint8_t stub_IoDeviceObjectType[64] = { 0 };
+
+uint32_t __stdcall stub_IoSetIoCompletion(void* a, void* b, void* c, uint32_t d, uint32_t e) { return 0; }
+uint32_t __stdcall stub_IoSetShareAccess(uint32_t a, uint32_t b, void* c, void* d) { return 0; }
+void __stdcall stub_KeBugCheck(uint32_t Code) { printf("KeBugCheck: 0x%08X\n", Code); }
+uint32_t __stdcall stub_KeInsertQueue(void* Queue, void* Entry) { return 0; }
+
+void __stdcall stub_KeQueryPerformanceCounter(void* out)
+{
+    if (out) { LARGE_INTEGER li; QueryPerformanceCounter(&li); *(LARGE_INTEGER*)out = li; }
+}
+
+uint32_t __stdcall stub_KeReleaseMutant(void* m, uint32_t a, uint32_t b, uint32_t c) { return 0; }
+uint32_t __stdcall stub_KeRemoveQueueDpc(void* Dpc) { return 0; }
+uint32_t __stdcall stub_KeRestoreFloatingPointState(void* Save) { return 0; }
+uint32_t stub_KeTickCount = 0;
+uint32_t __stdcall stub_NtFlushBuffersFile(void* a, void* b) { return 0; }
+uint32_t __stdcall stub_PsQueryStatistics(void* Stats) { return 0; }
+uint32_t __stdcall stub_RtlAnsiStringToUnicodeString(void* a, void* b, uint32_t c) { return 0; }
+void __stdcall stub_RtlCopyString(void* a, void* b) { }
+uint32_t __stdcall stub_RtlIntegerToChar(uint32_t a, uint32_t b, uint32_t c, void* d) { return 0; }
+uint32_t __stdcall stub_HalIsResetOrShutdownPending(void) { return 0; }
+
+// Ex
+void __stdcall stub_ExAcquireReadWriteLockExclusive(void* Lock) { }
+void __stdcall stub_ExAcquireReadWriteLockShared(void* Lock) { }
+uint8_t stub_ExEventObjectType[64] = { 0 };
+uint8_t stub_ExMutantObjectType[64] = { 0 };
+uint8_t stub_ExSemaphoreObjectType[64] = { 0 };
+uint8_t stub_ExTimerObjectType[64] = { 0 };
+void __stdcall stub_ExInterlockedAddLargeInteger(void* a, uint32_t b, uint32_t c) { }
+void __stdcall stub_ExInterlockedAddLargeStatistic(void* a, uint32_t b) { }
+uint64_t __stdcall stub_ExInterlockedCompareExchange64(void* a, void* b, void* c) { return 0; }
+void __stdcall stub_ExReleaseReadWriteLock(void* Lock) { }
+void __stdcall stub_ExfInterlockedInsertHeadList(void* a, void* b) { }
+void __stdcall stub_ExfInterlockedInsertTailList(void* a, void* b) { }
+void* __stdcall stub_ExfInterlockedRemoveHeadList(void* a) { return 0; }
+
+// Interlocked (fastcall)
+uint32_t __fastcall stub_InterlockedCompareExchange(void* Dest, uint32_t Exch, uint32_t Comp) { return 0; }
+uint32_t __fastcall stub_InterlockedIncrement(uint32_t* v) { return v ? ++*v : 0; }
+uint32_t __fastcall stub_InterlockedDecrement(uint32_t* v) { return v ? --*v : 0; }
+void* __fastcall stub_InterlockedPopEntrySList(void* Head) { return 0; }
+void* __fastcall stub_InterlockedPushEntrySList(void* Head, void* Entry) { return 0; }
+
+// Io
+void* __stdcall stub_IoAllocateIrp(uint32_t Size, uint32_t ChargeQuota) { return 0; }
+uint32_t __stdcall stub_IoCreateDevice(void* a, uint32_t b, void* c, uint32_t d, uint32_t e, uint32_t f, void** g) { return 0; }
+uint32_t __stdcall stub_IoDeleteDevice(void* a) { return 0; }
+uint8_t stub_IoFileObjectType[64] = { 0 };
+uint8_t stub_IoCompletionObjectType[64] = { 0 };
+void __stdcall stub_IoFreeIrp(void* Irp) { }
+uint32_t __stdcall stub_IoQueueThreadIrp(void* Irp) { return 0; }
+uint32_t __stdcall stub_IoSynchronousFsdRequest(uint32_t a, void* b, void* c, uint32_t d, void* e, void* f, uint32_t g) { return 0; }
+uint32_t __fastcall stub_IofCallDriver(void* Dev, void* Irp) { return 0; }
+void __fastcall stub_IofCompleteRequest(void* Irp, uint32_t Boost) { }
+
+// Kd
+uint32_t stub_KdDebuggerEnabled = 0;
+uint32_t stub_KdDebuggerNotPresent = 1;
+
+// Ke
+void __stdcall stub_KeBoostPriorityThread(void* Thread, uint32_t Inc) { }
+void __stdcall stub_KeEnterCriticalRegion(void) { }
+void __stdcall stub_KeLeaveCriticalRegion(void) { }
+uint8_t stub_MmGlobalData[64] = { 0 };
+void __stdcall stub_KeInitializeMutant(void* M, uint32_t Owner) { }
+void __stdcall stub_KeInitializeQueue(void* Q, uint32_t Count) { }
+void __stdcall stub_KeInitializeTimerEx(void* T, uint32_t Type) { }
+uint32_t __stdcall stub_KeInsertDeviceQueue(void* Q, void* E) { return 0; }
+uint32_t __stdcall stub_KeInsertByKeyDeviceQueue(void* Q, void* E, uint32_t K) { return 0; }
+uint32_t __stdcall stub_KeInsertHeadQueue(void* Q, void* E) { return 0; }
+uint64_t stub_KeInterruptTime = 0;
+void __stdcall stub_KePulseEvent(void* E, uint32_t Inc, uint32_t Wait) { }
+uint64_t __stdcall stub_KeQueryInterruptTime(void) { return 0; }
+uint32_t __stdcall stub_KeRaiseIrqlToDpcLevel(void) { return 0; }
+uint32_t __stdcall stub_KeReleaseSemaphore(void* S, uint32_t Inc, uint32_t Adj, uint32_t Wait) { return 0; }
+void* __stdcall stub_KeRemoveDeviceQueue(void* Q) { return 0; }
+void* __stdcall stub_KeRemoveByKeyDeviceQueue(void* Q, uint32_t K) { return 0; }
+uint32_t __stdcall stub_KeRemoveEntryDeviceQueue(void* Q, void* E) { return 0; }
+uint32_t __stdcall stub_KeResetEvent(void* E) { return 0; }
+void __stdcall stub_KeRundownQueue(void* Q) { }
+uint32_t __stdcall stub_KeSetTimer(void* T, uint64_t DueTime, void* Dpc) { return 0; }
+uint32_t __stdcall stub_KeSetTimerEx(void* T, uint64_t DueTime, uint32_t Period, void* Dpc) { return 0; }
+uint32_t __stdcall stub_KeTestAlertThread(uint32_t Mode) { return 0; }
+uint32_t __stdcall stub_KeWaitForSingleObject(void* O, uint32_t Reason, uint32_t Mode, uint32_t Alert, void* Timeout) { return 0; }
+uint32_t __stdcall stub_KeWaitForMultipleObjects(uint32_t Count, void* Objs, uint32_t Type, uint32_t Reason, uint32_t Mode, uint32_t Alert, void* Timeout, void* Wait) { return 0; }
+uint32_t __fastcall stub_KfLowerIrql(uint32_t Irql) { return 0; }
+uint32_t __fastcall stub_KfRaiseIrql(uint32_t Irql) { return 0; }
+
+// Mm
+void __stdcall stub_MmUnmapIoSpace(void* a, uint32_t b) { }
+
+// Nt
+uint32_t __stdcall stub_NtCreateTimer(void* H, void* OA, uint32_t Type) { if (H) *(uint32_t*)H = 0; return 0; }
+uint32_t __stdcall stub_NtDeviceIoControlFile(uint32_t H, uint32_t E, void* A, void* AC, void* IOSB, uint32_t Code, void* In, uint32_t InLen, void* Out, uint32_t OutLen) { return 0; }
+uint32_t __stdcall stub_NtFsControlFile(uint32_t H, uint32_t E, void* A, void* AC, void* IOSB, uint32_t Code, void* In, uint32_t InLen, void* Out, uint32_t OutLen) { return 0; }
+uint32_t __stdcall stub_NtProtectVirtualMemory(void** BA, uint32_t* Size, uint32_t Prot, uint32_t* Old) { return 0; }
+uint32_t __stdcall stub_NtQueueApcThread(uint32_t Th, void* R, void* Ctx, void* A1, void* A2) { return 0; }
+uint32_t __stdcall stub_NtQueryTimer(uint32_t H, uint32_t Cls, void* Info) { return 0; }
+uint32_t __stdcall stub_NtUserIoApcDispatcher(void* Ctx, void* IOSB, uint32_t Rsv) { return 0; }
+
+// Ob
+uint8_t stub_ObDirectoryObjectType[64] = { 0 };
+uint8_t stub_ObSymbolicLinkObjectType[64] = { 0 };
+uint32_t __stdcall stub_ObReferenceObjectByPointer(void* O, void* T) { return 0; }
+void __fastcall stub_ObfReferenceObject(void* O) { }
+
+// Phy
+uint32_t __stdcall stub_PhyGetLinkState(uint32_t Flags) { return 0; }
+
+// Ps
+uint32_t __stdcall stub_PsCreateSystemThread(void* H, void* OA, void* SR, void* SC, uint32_t Dbg) { if (H) *(uint32_t*)H = 0; return 0; }
+
+// Rtl
+uint32_t __stdcall stub_RtlAppendUnicodeStringToString(void* D, void* S) { return 0; }
+uint32_t __stdcall stub_RtlAppendUnicodeToString(void* D, void* S) { return 0; }
+uint32_t __stdcall stub_RtlCharToInteger(char* S, uint32_t Base, uint32_t* V) { if (V) *V = 0; return 0; }
+uint32_t __stdcall stub_RtlCompareMemory(void* a, void* b, uint32_t Len) { return Len; }
+uint32_t __stdcall stub_RtlCompareString(void* a, void* b, uint32_t Case) { return 0; }
+uint32_t __stdcall stub_RtlCompareUnicodeString(void* a, void* b, uint32_t Case) { return 0; }
+void __stdcall stub_RtlCopyUnicodeString(void* D, void* S) { }
+void __stdcall stub_RtlCreateUnicodeString(void* D, void* S) { }
+uint32_t __stdcall stub_RtlEqualString(void* a, void* b, uint32_t Case) { return 1; }
+uint32_t __stdcall stub_RtlEqualUnicodeString(void* a, void* b, uint32_t Case) { return 1; }
+void __stdcall stub_RtlFreeAnsiString(void* S) { }
+void __stdcall stub_RtlFreeUnicodeString(void* S) { }
+void __stdcall stub_RtlGetCallersAddress(void** Caller, void** Parent) { if (Caller) *Caller = 0; if (Parent) *Parent = 0; }
+uint32_t __stdcall stub_RtlIntegerToUnicodeString(uint32_t V, uint32_t Base, void* S) { return 0; }
+uint32_t __stdcall stub_RtlMultiByteToUnicodeN(void* U, uint32_t UMax, uint32_t* URet, void* M, uint32_t MLen) { return 0; }
+uint32_t __stdcall stub_RtlMultiByteToUnicodeSize(uint32_t* Sz, void* M, uint32_t MLen) { return 0; }
+uint32_t __stdcall stub_RtlUlongByteSwap(uint32_t V) { return _byteswap_ulong(V); }
+uint32_t __stdcall stub_RtlUnicodeStringToAnsiString(void* D, void* S, uint32_t Alloc) { return 0; }
+uint16_t __stdcall stub_RtlUpcaseUnicodeChar(uint16_t C) { return (C >= 'a' && C <= 'z') ? C - 32 : C; }
+uint32_t __stdcall stub_RtlUpcaseUnicodeString(void* D, void* S, uint32_t Alloc) { return 0; }
+uint32_t __stdcall stub_RtlUpcaseUnicodeToMultiByteN(void* M, uint32_t MMax, uint32_t* MRet, void* U, uint32_t ULen) { return 0; }
+
+// Xbox data exports
+uint8_t stub_XboxEEPROMKey[16] = { 0 };
+uint8_t stub_XboxHDKey[16] = { 0 };
+uint8_t stub_XboxSignatureKey[16] = { 0 };
+uint8_t stub_KiBugCheckData[20] = { 0 };
