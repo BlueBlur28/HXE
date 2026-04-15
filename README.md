@@ -22,6 +22,7 @@ HXE Running the nxdk triangle demo!
 ## Credits
 - https://github.com/cxbx-reloaded/cxbx-reloaded Their source code is really good reference for how to pull of all this HLE-ing.
 - https://xboxdevwiki.net/ Great source for Xbox specs!
+- The cxbx team for the awesome XbSymbolDatabase!
 
 
 ## Notes
