@@ -6,11 +6,10 @@
 - Loads .Xbe's and parses Section Headers, Thunk Table, and Entry points
 - Runs the game code natively on your x64/x86 pc! (Until it crashes:P)
 - Patching Thunk Table to load kernel functions
-- Can run a simple hello world program!
-- Can run a nxdk triangle demo!
+- Running homebrew built with nxdk (Kinda)
 
 #### What doesn't work
-- Running actual games
+- Running retail games
 - All kernel functions
 
 
